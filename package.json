@@ -1,0 +1,16 @@
+{
+  "name": "dgt_test_scraper",
+  "version": "1.0.0",
+  "description": "DGT test scraper",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Raine",
+  "license": "MIT",
+  "dependencies": {
+    "jsdom": "^20.0.1",
+    "node-fetch": "2.6.7",
+    "yargs": "^17.6.0"
+  }
+}
