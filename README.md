@@ -20,3 +20,9 @@ Options:
   -o, --output   <filename>   Output file path
   -u, --ugly     Do not prettify the JSON
 ```
+## How to run
+* Install node.js (v17.6.0 is recommended) and npm
+* Clone or download this repository
+* Open a terminal and navigate to this project's main folder (which you downloaded in the last step)
+* Run `npm i` to install the dependencies
+* Now run `node .` to start the program, or `node . -h` to see its help
