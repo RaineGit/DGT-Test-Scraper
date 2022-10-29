@@ -3,6 +3,8 @@ const fetch = require("node-fetch");
 const fs = require("fs");
 const yargs = require("yargs/yargs");
 const yargsHelpers = require("yargs/helpers");
+const AnkiExport = require("anki-apkg-export").default;
+var initSqlJs = undefined;
 
 const argv = yargs(yargsHelpers.hideBin(process.argv))
 	.usage("\nDGT test scraper\nUsage: $0 [options]")
@@ -42,6 +44,11 @@ const argv = yargs(yargsHelpers.hideBin(process.argv))
 			requiresArg: true,
 			required: false
 		},
+		anki: {
+			description: "Export the questions as an anki deck",
+			type: "boolean",
+			required: false
+		},
 		ugly: {
 			alias: "u",
 			description: "Do not prettify the JSON",
@@ -51,7 +58,7 @@ const argv = yargs(yargsHelpers.hideBin(process.argv))
 	})
 	.argv;
 const outputToFile = argv.output !== undefined;
-const verbose = argv.verbose || outputToFile;
+const verbose = argv.verbose || outputToFile || argv.anki;
 var startNum = argv.test || (argv.range ? argv.range[0] : undefined);
 var endNum = argv.test || (argv.range ? argv.range[1] : undefined);
 
@@ -114,10 +121,10 @@ async function main() {
 		for(const questionElem of document.querySelectorAll("article.test")) {
 			const question = questionElem.querySelector(".tit_not").textContent.split(".").slice(1).join(".").trim();
 			const image = server + questionElem.querySelector("figure img").src;
-			const correctAnswer = questionElem.querySelector(".content_respuesta > p > span.opcion").textContent.toLowerCase();
+			const correctAnswer = questionElem.querySelector(".content_respuesta > p > span.opcion").textContent.toLowerCase().replace(/[^a-z]/g, "");
 			const answers = [];
 			for(const answer of questionElem.querySelectorAll(".content_test > ul > li")) {
-				const answerLetter = answer.querySelector("span.opcion").textContent[0].toLowerCase();
+				const answerLetter = answer.querySelector("span.opcion").textContent.toLowerCase().replace(/[^a-z]/g, "");
 				const answerText = answer.textContent.split(".").slice(1).join(".").trim();
 				answers.push({
 					text: answerText,
@@ -135,8 +142,52 @@ async function main() {
 			console.error(percentage + "%: Scraped \"" + date + "\" test (num " + i + ")");
 	}
 	const json = (argv.ugly ? JSON.stringify(results) : JSON.stringify(results, null, 2));
-	if(outputToFile)
+	if(argv.anki) {
+		console.log("Exporting as an anki deck...");
+		const letters = ["A", "B", "C", "D", "E", "F", "G"];
+		if(initSqlJs === undefined)
+			initSqlJs = require('sql.js');
+		const sql = await initSqlJs();
+		const apkg = new AnkiExport({
+			deckName: "Preguntas DGT",
+			template: {},
+    		sql
+		});
+		for(const question of results) {
+			const frontRawHtml = "<p id=\"q\"></p><br><img><br><br><div id=\"a\"></div>";
+			const frontDocument = (new JSDOM(frontRawHtml)).window.document;
+			frontDocument.getElementById("q").textContent = question.question;
+			frontDocument.querySelector("img").src = question.image;
+			var answersDiv = frontDocument.getElementById("a");
+			for(var i=0; i<question.answers.length; i++) {
+				const answerElem = frontDocument.createElement("p");
+				answerElem.textContent = letters[i] + ". " + question.answers[i].text;
+				answersDiv.appendChild(answerElem);
+			}
+			var correctAnswer = undefined;
+			for(var i=0; i<question.answers.length; i++) {
+				if(question.answers[i].correct) {
+					correctAnswer = i;
+				}
+			}
+			const backRawHtml = "<p></p>";
+			const backDocument = (new JSDOM(backRawHtml)).window.document;
+			backDocument.querySelector("p").textContent = letters[correctAnswer] + ". " + question.answers[correctAnswer].text;
+			frontDocument.getElementById("q").removeAttribute("id");
+			frontDocument.getElementById("a").removeAttribute("id");
+			apkg.addCard(frontDocument.body.innerHTML, backDocument.body.innerHTML);
+		}
+		const zip = await apkg.save();
+		const fileName = argv.output === undefined ? "dgt-tests-anki.apkg" : argv.output;
+		fs.writeFileSync(fileName, zip, "binary");
+		if(verbose)
+			console.error("Saved as " + fileName);
+	}
+	else if(outputToFile) {
 		fs.writeFileSync(argv.output, json);
+		if(verbose)
+			console.error("Saved as " + argv.output);
+	}
 	else
 		console.log(json);
 }

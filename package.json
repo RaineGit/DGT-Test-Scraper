@@ -11,6 +11,8 @@
   "dependencies": {
     "jsdom": "^20.0.1",
     "node-fetch": "2.6.7",
-    "yargs": "^17.6.0"
+    "yargs": "^17.6.0",
+	"anki-apkg-export": "git+https://github.com/RaineGit2/anki-apkg-export.git#f71d985e5c20e3afd63f52bab7a3eac20f49e873",
+	"sql.js": "1.1.0"
   }
 }
