@@ -2,7 +2,7 @@
 This tool scraps a <a href="https://revista.dgt.es/es/test">DGT website containing multiple driving tests</a> and outputs them as JSON or as an Anki deck (.apkg)
 
 <a href="https://server.raine.page/dgt_tests">
-	<img src="https://server.raine.page/dgt_tests/image.cgi#c">
+	<img src="https://server.raine.page/dgt_tests/image.cgi">
 </a>
 
 ## CLI Help
